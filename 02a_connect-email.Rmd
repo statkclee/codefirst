@@ -1,0 +1,17 @@
+---
+title: "Email Document"
+output: blastula::blastula_email
+---
+
+```{r packages, include = FALSE}
+library(tidyverse)
+library(timetk)
+```
+
+Hi there! Your monthly sales report is ready for the `r params$region` region between `r params$startdate` and `r params$enddate`.
+
+
+```{r monthly-sales-chart, echo = FALSE}
+```
+
+The monthly data is attached to this email. To view the full report, click on the links below.
