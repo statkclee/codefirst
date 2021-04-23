@@ -83,14 +83,12 @@ reactable(monthly_sales_by_model,
           searchable = TRUE)
 ```
 
-
 ## Anomalies
 
 ```{r}
 monthly_sales_by_model %>% 
   plot_anomaly_diagnostics(date, sales, .alpha = .25)
 ```
-
 
 ## Profit
 
@@ -122,4 +120,3 @@ sales_by_returning %>%
        fill = "Model")
   
 ```
-

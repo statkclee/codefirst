@@ -2,7 +2,8 @@
 title: "Sales Report"
 output:
   html_document:
-    toc: no
+    toc: yes
+    toc_float: yes
     theme: spacelab
     code_folding: hide
 params:
@@ -67,7 +68,7 @@ sales <- read_csv("sales.csv") %>%
   filter_by_time(date, params$startdate, params$enddate)
 ```
 
-# Sales Summary - `r params$region` 
+# Sales Summary - `r params$region`
 
 This report summarizes sales of our 3 products in the `r params$region` region between `r params$startdate` and `r params$enddate`.
 
@@ -82,7 +83,6 @@ monthly_sales_by_model <- sales %>%
 
 write.csv(monthly_sales_by_model, "monthly_sales.csv", row.names = FALSE)
 ```
-
 
 ```{r monthly-sales-chart}
 monthly_sales_by_model %>% 
@@ -101,14 +101,12 @@ reactable(monthly_sales_by_model,
           searchable = TRUE)
 ```
 
-
 ## Anomalies
 
 ```{r}
 monthly_sales_by_model %>% 
   plot_anomaly_diagnostics(date, sales, .alpha = .25)
 ```
-
 
 ## Profit
 
@@ -140,7 +138,6 @@ sales_by_returning %>%
        fill = "Model")
   
 ```
-
 
 ```{r connect_email_setup, echo=FALSE}
 render_connect_email(input = "02a_connect-email.Rmd") %>%
