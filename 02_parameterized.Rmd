@@ -71,7 +71,7 @@ sales <- read_csv("sales.csv") %>%
 
 This report summarizes sales of our 3 products in the `r params$region` region between `r params$startdate` and `r params$enddate`.
 
-## Monthly Sales {.tabset}
+## Monthly Sales {.tabset .tabset-pills}
 
 ### Chart
 
@@ -88,7 +88,7 @@ write.csv(monthly_sales_by_model, "monthly_sales.csv", row.names = FALSE)
 monthly_sales_by_model %>% 
   ungroup() %>% 
   plot_time_series(date, sales, .color_var = model, .smooth = FALSE, .interactive = FALSE,
-                   .title = "Monthly Sales by Model - Last 12 Months",
+                   .title = "Monthly Sales by Model",
                    .color_lab = "Model")
 ```
 

@@ -58,7 +58,7 @@ sales <- read_csv("sales.csv") %>%
 
 This report summarizes sales of our 3 products in the North America region between April 23, 2020 and April 22, 2021.
 
-## Monthly Sales {.tabset}
+## Monthly Sales {.tabset .tabset-pills}
 
 ### Chart
 
