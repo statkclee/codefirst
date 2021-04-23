@@ -1,0 +1,28 @@
+---
+title: "03_scheduled"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(timetk)
+library(pins)
+
+sales <- read_csv("sales.csv") %>% 
+  mutate(net = price - cost - shipping)
+
+monthly_sales_by_model <- sales %>% 
+  group_by(region, model) %>% 
+  summarize_by_time(date, "month", sales = n()) %>% 
+  arrange(date, region, model)
+
+sales_by_returning <- sales %>% 
+  group_by(returning, region, model) %>% 
+  count()
+
+board_register_rsconnect(name="rsconnect", server="https://colorado.rstudio.com/rsc/", key = Sys.getenv("rsc-api"))
+pin(monthly_sales_by_model, "monthly-sales", board = "rsconnect")
+pin(sales_by_returning, "sales-by-returning", board = "rsconnect")
+```
+
+
