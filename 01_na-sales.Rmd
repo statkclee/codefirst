@@ -1,0 +1,125 @@
+---
+title: "Sales Report"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: spacelab
+    code_folding: hide
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(timetk)
+library(reactable)
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, comment = NA)
+```
+
+```{r generate-data, eval = FALSE, echo = FALSE}
+set.seed(20210422)
+
+d_dates <- seq(as.Date('2018/01/01'), as.Date(Sys.Date()), by="day")
+
+d_models <- c(rep("A", 5), rep("S", 3), rep("X", 2))
+
+d_regions <- c("North America", "Latin America", "EMEA", "APAC")
+
+sales <- tibble(
+  date = sample(d_dates, 7000, replace = TRUE),
+  model = sample(d_models, 7000, replace = TRUE),
+  shipping = round(runif(7000, 25, 150), 2),
+  region = sample(d_regions, 7000, replace = TRUE),
+) %>% 
+  mutate(price = case_when(model == "A" ~ 699,
+                           model == "S" ~ 999,
+                           model == "X" ~ 2499),
+         cost = case_when(model == "A" ~ 543,
+                           model == "S" ~ 804,
+                           model == "X" ~ 2238),
+         returning = case_when(model == "A" ~ sample(c(rep("yes", 1), rep("no", 20)), 7000, replace = TRUE),
+                               model == "S" ~ sample(c(rep("yes", 1), rep("no", 2)), 7000, replace = TRUE),
+                               model == "X" ~ sample(c(rep("yes", 3), rep("no", 1)), 7000, replace = TRUE))) %>% 
+  arrange(date) %>% 
+  mutate(id = row_number()) %>% 
+  select(id, date, model, price, cost, shipping, region, returning)
+
+write.csv(sales, "sales.csv", row.names = FALSE)
+```
+
+```{r}
+sales <- read_csv("sales.csv") %>% 
+  mutate(net = price - cost - shipping) %>% 
+  filter(region == "North America") %>% 
+  filter_by_time(date, Sys.Date()-365, Sys.Date())
+```
+
+# Sales Summary - North America
+
+This report summarizes sales of our 3 products in the North America region between April 23, 2020 and April 22, 2021.
+
+## Monthly Sales {.tabset}
+
+### Chart
+
+```{r}
+monthly_sales_by_model <- sales %>% 
+  group_by(model) %>% 
+  summarize_by_time(date, "month", sales = n())
+
+monthly_sales_by_model %>% 
+  ungroup() %>% 
+  plot_time_series(date, sales, .color_var = model, .smooth = FALSE, .interactive = FALSE,
+                   .title = "Monthly Sales by Model - Last 12 Months",
+                   .color_lab = "Model")
+```
+
+### Data
+
+```{r}
+reactable(monthly_sales_by_model,
+          resizable = TRUE,
+          filterable = TRUE,
+          searchable = TRUE)
+```
+
+
+## Anomalies
+
+```{r}
+monthly_sales_by_model %>% 
+  plot_anomaly_diagnostics(date, sales, .alpha = .25)
+```
+
+
+## Profit
+
+```{r}
+ggplot(sales, aes(x = model, y = net, color = model)) +
+  geom_jitter(alpha = .25) +
+  geom_point(stat = "summary", size = 5) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Profit by Model",
+       x = "Model",
+       y = "Profit")
+```
+
+## New vs. returning customers
+
+```{r}
+sales_by_returning <- sales %>% 
+  group_by(returning, model) %>% 
+  count()
+
+sales_by_returning %>% 
+  ggplot(aes(x = returning, y = n, fill = model)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Sales by Model and New vs. Returning Customer",
+       x = "Returning customer?",
+       y = "Sales",
+       fill = "Model")
+  
+```
+
