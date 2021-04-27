@@ -56,7 +56,9 @@ ui <- fluidPage(theme = shinytheme("spacelab"),
                                     tabPanel("Data",
                                              reactableOutput("dataTable")),
                                     tabPanel("Profit",
-                                             plotOutput("profitPlot")))
+                                             plotOutput("profitPlot")),
+                                    tabPanel("New vs. Returning",
+                                             plotlyOutput("returnPlot")))
                         
                     )
                 )
@@ -106,6 +108,19 @@ server <- function(input, output) {
             labs(title = "Profit by Model",
                  x = "Model",
                  y = "Profit")
+    })
+    
+    output$returnPlot <- renderPlotly({
+        ret_plot <- sales_by_returning %>% 
+                        ggplot(aes(x = returning, y = n, fill = model)) +
+                        geom_bar(stat = "identity", position = "dodge") +
+                        facet_wrap(~region) +
+                        theme_minimal() 
+                        #labs(title = "Sales by Model and New vs. Returning Customer",
+                             # x = "Returning customer?",
+                             # y = "Sales",
+                             # fill = "Model") %>% 
+        ggplotly(ret_plot)
     })
 }
 
