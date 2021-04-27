@@ -24,5 +24,3 @@ board_register_rsconnect(name="rsconnect", server="https://colorado.rstudio.com/
 pin(monthly_sales_by_model, "monthly-sales", board = "rsconnect")
 pin(sales_by_returning, "sales-by-returning", board = "rsconnect")
 ```
-
-

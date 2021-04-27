@@ -10,7 +10,6 @@ library(timetk)
 
 Hi there! Your monthly sales report is ready for the `r params$region` region between `r params$startdate` and `r params$enddate`.
 
-
 ```{r monthly-sales-chart, echo = FALSE}
 ```
 
