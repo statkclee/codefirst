@@ -16,6 +16,7 @@ library(shinythemes)
 
 
 board_register_rsconnect(name="rsconnect", server="https://colorado.rstudio.com/rsc/", key = Sys.getenv("rsc-api"))
+sales <- pin_get(name = "nick/sales", board = "rsconnect")
 monthly_sales <- pin_get(name = "nick/monthly-sales", board = "rsconnect")
 sales_by_returning <- pin_get(name = "nick/sales-by-returning", board = "rsconnect")
 
@@ -73,6 +74,11 @@ server <- function(input, output) {
             filter_by_time(date, input$date[1], input$date[2])
     }) 
     
+    sales_filtered <- reactive({
+        sales %>% 
+            filter(region == input$region) %>% 
+            filter_by_time(date, input$date[1], input$date[2])
+    })
     
     output$salesPlot <- renderPlotly({
         monthly_sales_filtered() %>% 
@@ -95,12 +101,8 @@ server <- function(input, output) {
     })
     
     output$profitPlot <- renderPlot({
-        sales <- read_csv("../sales.csv") %>% 
-            mutate(net = price - cost - shipping) %>% 
-            filter(region == input$region) %>% 
-            filter_by_time(date, input$date[1], input$date[2])
-        
-        ggplot(sales, aes(x = model, y = net, color = model)) +
+        sales_filtered() %>% 
+        ggplot(aes(x = model, y = net, color = model)) +
             geom_jitter(alpha = .25) +
             geom_point(stat = "summary", size = 5) +
             theme_minimal() +
@@ -112,14 +114,10 @@ server <- function(input, output) {
     
     output$returnPlot <- renderPlotly({
         ret_plot <- sales_by_returning %>% 
-                        ggplot(aes(x = returning, y = n, fill = model)) +
-                        geom_bar(stat = "identity", position = "dodge") +
-                        facet_wrap(~region) +
-                        theme_minimal() 
-                        #labs(title = "Sales by Model and New vs. Returning Customer",
-                             # x = "Returning customer?",
-                             # y = "Sales",
-                             # fill = "Model") %>% 
+            ggplot(aes(x = returning, y = n, fill = model)) +
+                geom_bar(stat = "identity", position = "dodge") +
+                theme_minimal() 
+            
         ggplotly(ret_plot)
     })
 }

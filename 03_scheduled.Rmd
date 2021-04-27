@@ -21,6 +21,7 @@ sales_by_returning <- sales %>%
   count()
 
 board_register_rsconnect(name="rsconnect", server="https://colorado.rstudio.com/rsc/", key = Sys.getenv("rsc-api"))
+pin(sales, "sales", board = "rsconnect")
 pin(monthly_sales_by_model, "monthly-sales", board = "rsconnect")
 pin(sales_by_returning, "sales-by-returning", board = "rsconnect")
 ```
