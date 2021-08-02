@@ -3,3 +3,4 @@
 *.csv
 .Rhistory
 .Renviron
+.DS_Store
