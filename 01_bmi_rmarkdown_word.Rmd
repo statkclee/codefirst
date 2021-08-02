@@ -1,0 +1,181 @@
+---
+layout: page
+title: "Computational Document"
+subtitle: "체질량지수(BMI) - R마크다운(`.rmd`)"
+author:
+    name: 이광춘 (KPMG)
+    affilates: 데이터 과학자
+date: "`r Sys.Date()`"
+always_allow_html: yes
+output:
+  word_document:
+    highlight: tango
+    number_section: true
+mainfont: NanumGothic     
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE,
+                      comment="", digits = 3, tidy = FALSE, prompt = FALSE, fig.align = 'center')
+```
+
+# 비즈니스 설명 {#api-BMI}
+
+[캐글, "500 Person Gender-Height-Weight-Body Mass Index - Height and Weight random generated, Body Mass Index Calculated"](https://www.kaggle.com/yersever/500-person-gender-height-weight-bodymassindex)에서 데이터를 바탕으로 고객에게 체중과 키 정보만 제공하면 체질량 지수(Body Mass Index , BMI)를 예측하는 모형을 개발하여 고객이 궁금해하는 서비스를 개발하고자 한다.
+
+> **체질량 지수(體質量指數, Body Mass Index, BMI)**는 인간의 비만도를 나타내는 지수로, 체중과 키의 관계로 계산된다.
+> 키가 `t` 미터, 체중이 `w` 킬로그램일 때, BMI는 다음이 수식으로 표현된다. (키의 단위가 센티미터가 아닌 미터임에 유의해야 한다.)
+> 
+> $$BMI = \frac{w}{t^2}$$
+
+체질량지수 (BMI지수)로 과체중 혹은 비만을 판정하는 한국 사례 [^bmi-wiki]
+
+[^bmi-wiki]: [위키백과, "체질량 지수" (2019-04-22 접근함)](https://ko.wikipedia.org/wiki/%EC%B2%B4%EC%A7%88%EB%9F%89_%EC%A7%80%EC%88%98)
+
+|    구분   |   BMI 지수   |
+|-----------|-------------------|
+| 고도 비만 | 40 이상        |
+| 중등도 비만 (2단계 비만) | 35 - 39.9 |
+| 경도 비만 (1단계 비만) | 30 - 34.9 |
+| 과체중  | 25 - 29.9 |
+| 정상 | 18.5 - 24.9 |
+| 저체중 | 18.5 미만 |
+
+# 데이터 {#api-BMI-data}
+
+[캐글, "500 Person Gender-Height-Weight-Body Mass Index - Height and Weight random generated, Body Mass Index Calculated"](https://www.kaggle.com/yersever/500-person-gender-height-weight-bodymassindex)에서 데이터를 바탕으로 고객에게 체중과 키 및 라벨 데이터 **index**가 준비되어 있어 키와 몸무게를 통해 BMI 예측한다.
+
+## 데이터 사전 {#authroing-data-dic}
+
+- Gender : Male / Female
+- Height : Number (cm)
+- Weight : Number (Kg)
+- Index :
+    - 0 : Extremely Weak
+    - 1 : Weak
+    - 2 : Normal
+    - 3 : Overweight
+    - 4 : Obesity
+    - 5 : Extreme Obesity
+
+## 데이터 가져오기 {#authroing-data-import}
+
+캐글에서 내려받은 원본 데이터를 살펴본다.
+
+```{r bmi-import}
+library(tidyverse)
+
+# bmi_dat <- read_csv("https://raw.githubusercontent.com/statkclee/author_carpentry_kr/gh-pages/data/500_Person_Gender_Height_Weight_Index.csv")
+
+bmi_dat <- read_csv("data/bmi_dat.csv")
+
+glimpse(bmi_dat)
+
+bmi_dat %>% 
+  DT::datatable()
+```
+
+
+# 탐색적 데이터 분석 {#api-BMI-EDA}
+
+## 요약 통계 {#api-BMI-EDA-descriptive}
+
+```{r bmi-EDA}
+bmi_df <- bmi_dat %>% 
+  mutate(Index = factor(Index, levels = c(0,1,2,3,4,5), labels = c("극저체중", "저체중", "정상", "과체중", "비만", "고도비만")),
+         Gender = factor(Gender, levels = c("Male", "Female")))
+
+bmi_df %>% 
+  group_by(Index) %>% 
+  summarise(평균키 = mean(Height),
+            평균체중 = mean(Weight))
+```
+
+
+## 시각화 {#api-BMI-EDA-descriptive-viz}
+
+```{r bmi-EDA-viz}
+library(extrafont)
+loadfonts()
+
+bmi_df %>% 
+  gather(키체중, 값, -Gender, -Index) %>% 
+  ggplot(aes(x=Index, y= 값, fill=Gender)) +
+    geom_boxplot(show.legend = FALSE) +
+    facet_grid(키체중 ~ Gender,  scales="free") +
+    labs(x="", y="",
+         title="성별, 비만구분에 따른 키와 몸무게") +
+    theme_bw(base_family = "NanumGothic")
+```
+
+
+# 예측모형 - BMI 예측 {#api-BMI-predictive}
+
+$$\text{BMI 그룹} = f(\text{성별}, \text{키}, \text{몸무게}) + \epsilon$$
+BMI 그룹: "극저체중", "저체중", "정상", "과체중", "비만", "고도비만"
+
+```{r bmi-EDA-predictive}
+# 0. 환경설정 ------
+library(caret)
+library(doSNOW)
+
+set.seed(777)
+
+# 1. 데이터 ------
+# bmi_df
+
+# 2. 데이터 전처리 ------
+
+# 3. 예측모형 ------
+## 3.1. 병렬처리 환경설정
+num_cores <- parallel:::detectCores()
+start_time <- Sys.time()
+
+cl <- makeCluster(num_cores, type = "SOCK")
+registerDoSNOW(cl)
+
+## 3.2. 훈련 vs 검증/시험
+train_test_index <- createDataPartition(bmi_df$Index, p = 0.7, list = FALSE)
+
+train <- bmi_df[train_test_index, ]
+test <- bmi_df[-train_test_index, ]
+
+## 3.3. 모형 개발/검증 데이터셋 준비 ------
+cv_folds <- createMultiFolds(train$Index, k = 10, times = 5)
+cv_ctrl <- trainControl(method = "cv", number = 10,
+                        index = cv_folds, 
+                        verboseIter = TRUE)
+## 3.2. 예측모형 적용
+### ranger
+gc_ranger_model <- train(Index ~., train,
+                  method = "ranger",
+                  tuneLength = 7,
+                  trControl = cv_ctrl)
+
+# 4. 모형 비교평가-----
+gc_pred_class <- predict(gc_ranger_model, newdata = test, type="raw")
+## 혼동행렬 -----
+bmi_conf <- confusionMatrix(gc_pred_class, test$Index)
+
+bmi_conf$table
+
+cat("정확도: ", scales::percent(bmi_conf$overall[["Accuracy"]]))
+
+stopCluster(cl)
+```
+
+
+# BMI 예측 {#api-BMI-predictive-run}
+
+```{r bmi-predict}
+bmi_test_dat <- tribble(
+   ~"Gender", ~"Height", ~"Weight",
+   "Male", 149, 61,
+   "Female",  172, 67
+)
+
+predict(gc_ranger_model, newdata = bmi_test_dat, type="raw")
+```
+
