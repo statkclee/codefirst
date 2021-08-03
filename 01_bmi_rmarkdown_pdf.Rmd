@@ -99,7 +99,7 @@ bmi_df %>%
 
 ## 시각화 {#api-BMI-EDA-descriptive-viz}
 
-```{r bmi-EDA-viz}
+```{r bmi-EDA-viz, dev="cairo_pdf"}
 library(extrafont)
 loadfonts()
 

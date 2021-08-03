@@ -1,0 +1,100 @@
+---
+title: "BMI 비만도 예측"
+author: "Tidyverse Korea"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+library(shiny)
+library(tidyverse)
+library(shinydashboard)
+library(tidymodels)
+library(caret)
+
+```
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r input}
+selectInput('Gender', 'Gender (성별)', c("Male" = "Male", "Female" = "Female"))
+sliderInput('Height',  'Height (키)',  min=140, max=200, value=170, step=1)
+sliderInput('Weight', 'Weight (몸무게)', min=50, max=160, value=70, step=1)
+
+```
+
+비만도를 예측모형
+
+Column {data-width=600}
+-------------------------------------
+
+```{r penguin-features}
+Gender  <- reactive(as.factor(input$Gender))
+Height  <- reactive(as.integer(input$Height))
+Weight  <- reactive(as.integer(input$Weight))
+```
+    
+### 성별
+    
+```{r predict-bmi}
+loc_pm <- glue::glue("{here::here()}/app_shiny/gc_ranger_model.rds")
+bmi_predictvie_model <- read_rds(loc_pm)
+
+person_tbl <- reactive({
+  tibble("Gender" = input$Gender,
+         "Height" =  input$Height,
+         "Weight" =  input$Weight)
+  })
+
+pred_bmi <- reactive({
+  predict(bmi_predictvie_model, person_tbl()) %>% unlist %>% as.character
+})
+
+renderPrint(pred_bmi())
+
+```
+
+### 성별 확률
+    
+```{r predict-bmi-probability}
+prob_bmi <- reactive({
+  predict(bmi_predictvie_model, person_tbl(), type="prob")
+})
+
+renderText(glue::glue("- 극저체중: {round(prob_bmi()[,1] *100,2)} % 
+                       - 저체중: {round(prob_bmi()[,2] *100,2)} %
+                       - 정상: {round(prob_bmi()[,3] *100,2)} %
+                       - 과체중: {round(prob_bmi()[,4] *100,2)} %
+                       - 비만: {round(prob_bmi()[,5] *100,2)} %
+                       - 고도비만: {round(prob_bmi()[,6] *100,2)} %"))
+```
+
+   
+Column {data-width=400}
+-------------------------------------
+   
+### Gender (성별)
+
+```{r penguin-features-bill_length_mm}
+renderText(glue::glue("- 성별: { Gender()}"))
+```
+ 
+### Height (키)
+    
+```{r penguin-features-bill_depth_mm}
+renderText(glue::glue("- Height (키): {Height()}"))
+```
+
+
+### Weight (몸무게)
+    
+```{r penguin-features-flipper_length_mm}
+renderText(glue::glue("- Weight (몸무게): {Weight()}"))
+```
+
+
